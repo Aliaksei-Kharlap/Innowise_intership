@@ -8,8 +8,9 @@ django = "*"
 django-rest-framework = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
+selenium = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.9"
+python_version = "3.10"
