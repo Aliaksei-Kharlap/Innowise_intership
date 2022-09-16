@@ -37,7 +37,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'facebookk',
 ]
 
 MIDDLEWARE = [
@@ -91,8 +92,8 @@ DATABASES = {
         'NAME': os.getenv("NAME"),
         'USER': os.getenv("USER2"),
         'PASSWORD': os.getenv("PASSWORD2"),
-        'HOST': os.getenv("HOST"),
-        'PORT': os.getenv("PORT"),
+        'HOST': os.getenv("HOST1"),
+        'PORT': os.getenv("PORT1"),
     }
 }
 
