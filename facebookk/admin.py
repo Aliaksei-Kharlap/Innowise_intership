@@ -1,3 +1,7 @@
 from django.contrib import admin
 
-# Register your models here.
+from facebookk.models import Post, Page, Tag
+
+admin.site.register(Post)
+admin.site.register(Page)
+admin.site.register(Tag)
