@@ -8,7 +8,8 @@ router.register(r'pages', views.PagesViewSet, basename="pages")
 router.register(r'posts', views.PostsViewSet, basename="posts")
 router.register(r'tags', views.TagsViewSet, basename="tags")
 
-пше
 urlpatterns = [
     path('', include(router.urls)),
 ]
+
+

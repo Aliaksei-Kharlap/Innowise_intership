@@ -9,6 +9,7 @@ django-rest-framework = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
 selenium = "*"
+djangorestframework-jwt = "*"
 
 [dev-packages]
 
