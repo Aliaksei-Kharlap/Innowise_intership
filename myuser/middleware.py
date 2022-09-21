@@ -9,7 +9,7 @@ from myuser.models import User
 
 from django.contrib.auth.models import AnonymousUser
 
-def simple_middleware(get_response):
+def jwt_auth_middleware(get_response):
     def middleware(request):
         header = request.headers.get('Authorization')
 

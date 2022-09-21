@@ -12,24 +12,14 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.CharField(max_length=255)
-    password = serializers.CharField(max_length=128, write_only=True)
+    email = serializers.CharField(max_length=255, required=True)
+    password = serializers.CharField(max_length=128, write_only=True, required=True)
     token = serializers.CharField(max_length=255, read_only=True)
 
     def validate(self, data):
 
         email = data.get('email', None)
         password = data.get('password', None)
-
-        if email is None:
-            raise serializers.ValidationError(
-                'An email address is required to log in.'
-            )
-
-        if password is None:
-            raise serializers.ValidationError(
-                'A password is required to log in.'
-            )
 
         try:
             user = User.objects.get(email=email)
@@ -40,7 +30,7 @@ class LoginSerializer(serializers.Serializer):
 
         if user.is_blocked:
             raise serializers.ValidationError(
-                'This user has been deactivated.'
+                'This user has been blocked.'
             )
 
         if user.check_password(password):
