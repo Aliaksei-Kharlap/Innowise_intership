@@ -9,9 +9,11 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
+
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+
 
 load_dotenv()
 env_path = Path('.')/'.env'
@@ -20,7 +22,6 @@ load_dotenv(dotenv_path=env_path)
 # retrieving keys and adding them to the project
 # from the .env file through their key names
 SECRET_KEY = os.getenv("SECRET_KEY")
-
 
 
 
@@ -59,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'myuser.middleware.jwt_auth_middleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
