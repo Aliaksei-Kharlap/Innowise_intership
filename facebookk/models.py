@@ -34,12 +34,6 @@ class Post(models.Model):
       ordering = ['created_at']
 
 
-class Subscription(models.Model):
-   user_from = models.ForeignKey('myuser.User', related_name="sub_to", on_delete=models.CASCADE)
-   page_to = models.ForeignKey('facebookk.Page', related_name="pages_to", on_delete=models.CASCADE)
-   status = models.BooleanField(null=True, default=None)
-
-
 class Like(models.Model):
    user_from = models.ForeignKey('myuser.User', related_name="like_to", on_delete=models.CASCADE)
    post_to = models.ForeignKey('facebookk.Post', related_name="lposts_to", on_delete=models.CASCADE,

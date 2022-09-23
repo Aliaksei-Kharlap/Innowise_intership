@@ -22,7 +22,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=9, choices=Roles.choices)
     title = models.CharField(max_length=80)
     is_blocked = models.BooleanField(default=False)
-    username = models.CharField(max_length=80)
+    username = models.CharField(max_length=80, unique=True)
     @property
     def token(self):
         return self._generate_jwt_token()

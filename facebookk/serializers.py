@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.admin import helpers
 
-from facebookk.models import Tag, Page, Post, Subscription, Like, UnLike
+from facebookk.models import Tag, Page, Post, Like, UnLike
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -22,10 +22,6 @@ class PostSerializer(serializers.ModelSerializer):
         model = Post
         fields = ('id', 'page', 'content', 'reply_to', 'created_at', 'updated_at')
 
-class SubscriptionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Subscription
-        fields = ('id', 'user_from', 'user_to', 'status')
 
 class LikeSerializer(serializers.ModelSerializer):
     class Meta:

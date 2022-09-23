@@ -1,3 +1,5 @@
+import datetime
+
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework import mixins
@@ -55,6 +57,7 @@ class UserBlockViewSet(viewsets.GenericViewSet):
         pages = user.relpages.all()
         for page in pages:
             page.is_block = False
+            page.unblock_date = datetime.datetime.now()
             page.save()
         return Response(status=status.HTTP_200_OK)
 

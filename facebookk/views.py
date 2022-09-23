@@ -3,11 +3,11 @@ from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.db.models import Q
-from facebookk.models import Page, Post, Tag, Subscription, Like, UnLike
-from facebookk.serializers import PageSerializer, TagSerializer, PostSerializer, SubscriptionSerializer, LikeSerializer, \
+from facebookk.models import Page, Post, Tag, Like, UnLike
+from facebookk.serializers import PageSerializer, TagSerializer, PostSerializer, LikeSerializer, \
     UnLikeSerializer, SearchSerializers
 from myuser.models import User
-from myuser.serializers import UserSerializer
+from myuser.serializers import UserSerializer, UserBlockSerializer
 
 
 class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateModelMixin,
@@ -35,41 +35,71 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get', 'head', 'delete'])
-    def subscriptions_to_me(self, request, pk):
+    def follows_request(self, request, pk):
         if request.method == "GET":
-            subs = Page.objects.get(pk=pk, is_block=False).pages_to.all()
-            serializer = SubscriptionSerializer(subs, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            pages = request.user.relpages.all()
+            page = Page.objects.get(pk=pk)
+            if page in pages:
+                subs = Page.objects.get(pk=pk, is_block=False).follow_requests.all()
+                serializer = UserSerializer(subs, many=True)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response("You do not have acces")
+
         if request.method == "HEAD":
+            pages = request.user.relpages.all()
             page = Page.objects.get(pk=pk, is_block=False)
-            subs = page.pages_to.all()
-            for sub in subs:
-                sub.status = True
-                sub.save()
-                page.followers.add(sub.user_from)
+            if page in pages:
+                subs = page.follow_requests.all()
+                for sub in subs:
+                    page.followers.add(subs)
+                    page.follow_requests.remove()
                 page.save()
-            return Response(status=status.HTTP_200_OK)
+                return Response(status=status.HTTP_200_OK)
+            else:
+                return Response("You do not have acces")
+
         if request.method == "DELETE":
             page = Page.objects.get(pk=pk, is_block=False)
-            subs = page.pages_to.all()
-            for sub in subs:
-                sub.status = False
-                sub.save()
+            pages = request.user.relpages.all()
+            subs = page.follow_requests.all()
+            if page in pages:
+                page.follow_requests.clear()
+                page.save()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response("You do not have acces")
 
     @action(detail=True, methods=['post'])
-    def create_subscription(self, request, pk):
-        serializer = SubscriptionSerializer(data=request.data)
-        if serializer.is_valid():
-            page = Page.objects.get(pk=pk, is_block=False)
-            user = User.objects.get(pk=request.user.pk)
-            if page.is_private:
-                obj = serializer.save(page_to=page, user_from=user, status=None)
-                return Response(obj.data, status=status.HTTP_201_CREATED)
-            else:
-                obj = serializer.save(page_to=page, user_from=user, status=True)
+    def add_folowwer(self, request, pk):
+        pages = request.user.relpages.all()
+        page = Page.objects.get(pk=pk, is_block=False)
+        if page in pages:
+            user_id = UserBlockSerializer(data=request.data).id
+            user = User.objects.get(pk=user_id)
+            if user in page.follow_requests.all():
+                page.follow_requests.remove(user)
                 page.followers.add(user)
                 page.save()
-                return Response(obj.data, status=status.HTTP_201_CREATED)
+                return Response(status=status.HTTP_200_OK)
+            else:
+                return Response("You are wrong")
+
+    @action(detail=True, methods=['post'])
+    def del_folowwer(self, request, pk):
+        pages = request.user.relpages.all()
+        page = Page.objects.get(pk=pk, is_block=False)
+        if page in pages:
+            user_id = UserBlockSerializer(data=request.data).id
+            user = User.objects.get(pk=user_id)
+            if user in page.follow_requests.all():
+                page.follow_requests.remove(user)
+                page.save()
+                return Response(status=status.HTTP_200_OK)
+            else:
+                return Response("You are wrong")
+
+
 
 
 
@@ -151,45 +181,11 @@ class TagsViewSet(viewsets.GenericViewSet, mixins.DestroyModelMixin):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
 
-class SubscriptionViewSet(viewsets.GenericViewSet, mixins.DestroyModelMixin):
-
-    queryset = Subscription.objects.all()
-    serializer_class = SubscriptionSerializer
-
-
-    @action(detail=True, methods=['get'])
-    def agree_subscription(self, request, pk):
-        user = request.user
-        sub = Subscription.objects.get(pk=pk)
-        user_have = sub.page_to.owner
-        if user == user_have:
-            sub.status = True
-            sub.save()
-            page = sub.page_to
-            page.followers.add(sub.user_from)
-            page.save()
-            Response(status=status.HTTP_200_OK)
-        else:
-            Response(status=status.HTTP_423_LOCKED)
-
-    @action(detail=True, methods=['head'])
-    def disagree_subscription(self, request, pk):
-        user = request.user
-        sub = Subscription.objects.get(pk=pk)
-        user_have = sub.page_to.owner
-        if user == user_have:
-            sub.status = False
-            sub.save()
-            Response(status=status.HTTP_200_OK)
-        else:
-            Response(status=status.HTTP_423_LOCKED)
-
-
 class LikeViewSet(viewsets.GenericViewSet, mixins.DestroyModelMixin, mixins.RetrieveModelMixin,
                   mixins.ListModelMixin):
 
     queryset = Like.objects.all()
-    serializer_class = SubscriptionSerializer
+    serializer_class = LikeSerializer
 
     def list(self, request):
         posts = Post.objects.filter(like_fil__user_from=request.user)
@@ -198,7 +194,7 @@ class LikeViewSet(viewsets.GenericViewSet, mixins.DestroyModelMixin, mixins.Retr
 class UnLikeViewSet(viewsets.GenericViewSet, mixins.DestroyModelMixin, mixins.RetrieveModelMixin):
 
     queryset = UnLike.objects.all()
-    serializer_class = SubscriptionSerializer
+    serializer_class = UnLikeSerializer
 
 class SearchViewSet(viewsets.GenericViewSet):
     serializer_class = SearchSerializers
