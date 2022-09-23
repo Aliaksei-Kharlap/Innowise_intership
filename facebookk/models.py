@@ -12,7 +12,7 @@ class Page(models.Model):
    name = models.CharField(max_length=80)
    uuid = models.CharField(max_length=30, unique=True)
    description = models.TextField()
-   tags = models.ManyToManyField('facebookk.Tag', related_name='pages')
+   tags = models.ManyToManyField('facebookk.Tag', related_name='pages', blank=True)
    owner = models.ForeignKey('myuser.User', on_delete=models.CASCADE, related_name='relpages')
    followers = models.ManyToManyField('myuser.User', related_name='follows')
    image = models.URLField(null=True, blank=True)
@@ -20,6 +20,7 @@ class Page(models.Model):
    follow_requests = models.ManyToManyField('myuser.User', related_name='requests')
    created_date = models.DateTimeField(auto_now_add=True)
    unblock_date = models.DateTimeField(null=True, blank=True)
+   is_block = models.BooleanField(default=False)
 
 
 class Post(models.Model):
@@ -39,3 +40,12 @@ class Subscription(models.Model):
    status = models.BooleanField(null=True, default=None)
 
 
+class Like(models.Model):
+   user_from = models.ForeignKey('myuser.User', related_name="like_to", on_delete=models.CASCADE)
+   post_to = models.ForeignKey('facebookk.Post', related_name="lposts_to", on_delete=models.CASCADE,
+                               related_query_name='like_fil')
+
+class UnLike(models.Model):
+   user_from = models.ForeignKey('myuser.User', related_name="unlike_to", on_delete=models.CASCADE)
+   post_to = models.ForeignKey('facebookk.Post', related_name="uposts_to", on_delete=models.CASCADE,
+                               related_query_name='unlike_fil')

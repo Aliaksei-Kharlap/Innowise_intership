@@ -4,11 +4,15 @@ from myuser.models import User
 from django.contrib.auth import authenticate
 
 class UserSerializer(serializers.ModelSerializer):
-    #token = serializers.CharField(max_length=255, read_only=True)
-
+    is_blocked = serializers.BooleanField(default=False, read_only=True)
     class Meta:
         model = User
-        fields = ['id', 'email', 'image_s3_path', 'role', 'title', 'is_blocked']
+        fields = ('id', 'email', 'username', 'image_s3_path', 'role', 'title', "is_blocked")
+
+class UserBlockSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+
+
 
 
 class LoginSerializer(serializers.Serializer):
