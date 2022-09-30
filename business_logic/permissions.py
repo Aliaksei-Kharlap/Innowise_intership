@@ -40,32 +40,16 @@ class OwnerOnlyLikeUnlike(BasePermission):
 class AdminModerOnly(BasePermission):
 
     def has_permission(self, request, view):
-        if request.user.role == "admin" or request.user.role == "moderator":
-            return True
-        else:
-            return False
+        return request.user.role == "admin" or request.user.role == "moderator"
 
 
 
 class AdminModerOwnerOnly(BasePermission):
 
     def has_permission(self, request, view):
-        if request.user.role == "admin" or request.user.role == "moderator":
-            return True
-        else:
-            return False
+
+        return request.user.role == "admin" or request.user.role == "moderator"
 
 
     def has_object_permission(self, request, view, obj):
-        if request.user.role == "admin" or request.user.role == "moderator":
-            return True
-        elif obj is request.user:
-            return True
-        else:
-            return False
-
-class NoOne(BasePermission):
-
-    def has_permission(self, request, view):
-
-        return False
+        return request.user.role == "admin" or request.user.role == "moderator" or obj == request.user

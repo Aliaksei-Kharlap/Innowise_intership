@@ -1,15 +1,17 @@
 import datetime
 
+import boto3
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework import mixins
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, BasePermission
+from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from business_logic import permissions
 from facebookk.models import Post
+from mysite import settings
 from myuser.models import User
 from myuser.serializers import UserSerializer, LoginSerializer, UserBlockSerializer
 
@@ -20,24 +22,65 @@ class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    permission_classes_by_action = {
+        "list": [permissions.AdminModerOnly],
+        "default": [IsAuthenticated],
+        "create": [AllowAny],
+        "retrieve": [AllowAny],
+        "update": [permissions.OwnerOnlyUser],
+        "delete": [permissions.AdminModerOwnerOnly]
+    }
+
     def get_permissions(self):
-        if self.action == 'list':
-            self.permission_classes = (permissions.AdminModerOnly,)
-        elif self.action == 'create':
-            self.permission_classes = (AllowAny,)
-        elif self.action == 'retrieve':
-            self.permission_classes = (AllowAny,)
-        elif self.action == 'update':
-            self.permission_classes = (permissions.OwnerOnlyUser,)
-        elif self.action == 'delete':
-            self.permission_classes = (permissions.AdminModerOwnerOnly,)
-        return [permission() for permission in self.permission_classes]
+        try:
+            return [
+                permission()
+                for permission in self.permission_classes_by_action[self.action]
+            ]
+        except KeyError:
+            return [
+                permission()
+                for permission in self.permission_classes_by_action["default"]
+            ]
+
+    @action(detail=False, methods=['post'])
+    def add_image(self, request):
+        file = request.FILES['image']
+        user = request.user
+        file_name = user.username
+
+        ###filename = file
+
+        FILE_FORMAT = ('jpg', 'png', 'jpeg')
+
+        if filename.endswith(FILE_FORMAT):
+            try:
+                client_s3 = boto3.client(
+                    's3',
+                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                )
+
+                client_s3.upload_file(
+                    file,
+                    settings.AWS_STORAGE_BUCKET_NAME,
+                    file_name,
+                )
+                url = f's3://{settings.AWS_STORAGE_BUCKET_NAME}/{file_name}'
+                user.image_s3_path = url
+                user.save()
+
+            except:
+                Response("Something wrong, try again")
+        else:
+            Response("This format is not allowed")
 
 
 
 class LoginViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
     permission_classes = (AllowAny,)
     serializer_class = LoginSerializer
+
 
     def create(self, request):
         user = request.data

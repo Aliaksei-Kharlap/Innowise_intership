@@ -1,3 +1,4 @@
+import boto3
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, mixins, status, exceptions
 from rest_framework.decorators import action, api_view
@@ -9,6 +10,8 @@ from business_logic import permissions
 from facebookk.models import Page, Post, Tag, Like, UnLike
 from facebookk.serializers import PageSerializer, TagSerializer, PostSerializer, LikeSerializer, \
     UnLikeSerializer, SearchSerializers
+from facebookk.services import send
+from mysite import settings
 from myuser.models import User
 from myuser.serializers import UserSerializer, UserBlockSerializer
 
@@ -19,25 +22,68 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
     queryset = Page.objects.filter(is_block=False)
     serializer_class = PageSerializer
 
-
+    permission_classes_by_action = {
+        "list": [IsAuthenticated],
+        "create": [IsAuthenticated],
+        "retrieve": [AllowAny],
+        "update": [permissions.OwnerOnlyPage],
+        "delete": [permissions.OwnerOnlyPage],
+        "delete_tag": [permissions.OwnerOnlyPage],
+        "get_block_pages": [permissions.AdminModerOnly],
+        "get_all_pages_tags": [IsAuthenticated],
+        "create_tag": [IsAuthenticated],
+        "follows_request": [IsAuthenticated],
+        "default": [IsAuthenticated]
+    }
 
     def get_permissions(self):
-        if self.action == 'list':
-            self.permission_classes = (IsAuthenticated, )
-        elif self.action == 'create':
-            self.permission_classes = (IsAuthenticated,)
-        elif self.action == 'retrieve':
-            self.permission_classes = (AllowAny,)
-        elif self.request.method == 'PUT':
-            self.permission_classes = (permissions.OwnerOnlyPage,)
-        elif self.action == 'delete' or self.action == 'delete_tag':
-            self.permission_classes = (permissions.OwnerOnlyPage,)
-        elif self.action == 'get_block_pages':
-            self.permission_classes = (permissions.AdminModerOnly,)
-        elif self.action == 'get_all_pages_tags' or self.action == 'create_tag' or \
-            self.action == 'follows_request':
-            self.permission_classes = (IsAuthenticated,)
-        return [permission() for permission in self.permission_classes]
+        try:
+            return [
+                permission()
+                for permission in self.permission_classes_by_action[self.action]
+            ]
+        except KeyError:
+            return [
+                permission()
+                for permission in self.permission_classes_by_action["default"]
+            ]
+
+    @action(detail=True, methods=['post'])
+    def add_page_image(self, request, pk):
+        file = request.FILES['image']
+        page = Page.objects.get(pk=pk)
+        user = request.user
+        file_name = page.name + user.username
+
+        if page not in user.relpages.all():
+            return Response("you do not have access")
+
+
+        ###filename = file проверка типа
+
+        FILE_FORMAT = ('jpg', 'png', 'jpeg')
+
+        if filename.endswith(FILE_FORMAT):
+            try:
+                client_s3 = boto3.client(
+                    's3',
+                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                )
+
+                client_s3.upload_file(
+                    file,
+                    settings.AWS_STORAGE_BUCKET_NAME,
+                    file_name,
+                )
+                url = f's3://{settings.AWS_STORAGE_BUCKET_NAME}/{file_name}'
+                user.image_s3_path = url
+                user.save()
+
+            except:
+                Response("Something wrong, try again")
+        else:
+            Response("This format is not allowed")
 
     @action(detail=False, methods=['get'])
     def get_block_pages(self, request, pk):
@@ -135,7 +181,7 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
         if page in pages:
             user_id = UserBlockSerializer(data=request.data)
             if user_id.is_valid():
-               user_id = user_id.validated_data["id"]
+                user_id = user_id.validated_data["id"]
                 user = User.objects.get(pk=user_id)
                 if user in page.follow_requests.all():
                     page.follow_requests.remove(user)
@@ -152,20 +198,38 @@ class PostsViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
     queryset = Post.objects.filter(page__is_block=False)
     serializer_class = PostSerializer
 
+
+    permission_classes_by_action = {
+        "list": [IsAuthenticated],
+        "create": [IsAuthenticated],
+        "retrieve": [AllowAny],
+        "update": [permissions.OwnerOnlyPost],
+        "delete": [permissions.AdminModerOwnerOnly],
+        "create_like": [permissions.OwnerOnlyPage],
+        "create_unlike": [IsAuthenticated],
+        "default": [IsAuthenticated]
+    }
+
+    def create(self, request):
+
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            send.delay(serializer.data.page.id)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
     def get_permissions(self):
-        if self.action == 'list':
-            self.permission_classes = (IsAuthenticated,)
-        elif self.action == 'create':
-            self.permission_classes = (IsAuthenticated,)
-        elif self.action == 'retrieve':
-            self.permission_classes = (AllowAny,)
-        elif self.action == 'update':
-            self.permission_classes = (permissions.OwnerOnlyPost,)
-        elif self.action == 'delete':
-            self.permission_classes = (permissions.AdminModerOwnerOnly,)
-        elif self.action == 'create_like' or self.action == 'create_unlike':
-            self.permission_classes = (IsAuthenticated,)
-        return [permission() for permission in self.permission_classes]
+        try:
+            return [
+                permission()
+                for permission in self.permission_classes_by_action[self.action]
+            ]
+        except KeyError:
+            return [
+                permission()
+                for permission in self.permission_classes_by_action["default"]
+            ]
 
     def list(self, request):
         user = request.user
@@ -240,12 +304,23 @@ class LikeViewSet(viewsets.GenericViewSet, mixins.DestroyModelMixin,
     queryset = Like.objects.all()
     serializer_class = LikeSerializer
 
+    permission_classes_by_action = {
+        "delete": [permissions.OwnerOnlyLikeUnlike],
+        "default": [IsAuthenticated]
+    }
+
     def get_permissions(self):
-        if self.action == 'delete':
-            self.permissions_classes = (permissions.OwnerOnlyLikeUnlike,)
-        else:
-            self.permission_classes = (IsAuthenticated,)
-        return [permission() for permission in self.permission_classes]
+        try:
+            return [
+                permission()
+                for permission in self.permission_classes_by_action[self.action]
+            ]
+        except KeyError:
+            return [
+                permission()
+                for permission in self.permission_classes_by_action["default"]
+            ]
+
 
     def list(self, request):
         posts = Post.objects.filter(like_fil__user_from=request.user)
@@ -257,12 +332,22 @@ class UnLikeViewSet(viewsets.GenericViewSet, mixins.DestroyModelMixin, mixins.Re
     queryset = UnLike.objects.all()
     serializer_class = UnLikeSerializer
 
+    permission_classes_by_action = {
+        "delete": [permissions.OwnerOnlyLikeUnlike],
+        "default": [IsAuthenticated]
+    }
+
     def get_permissions(self):
-        if self.action == 'delete':
-            self.permissions_classes = (permissions.OwnerOnlyLikeUnlike,)
-        else:
-            self.permission_classes = (IsAuthenticated,)
-        return [permission() for permission in self.permission_classes]
+        try:
+            return [
+                permission()
+                for permission in self.permission_classes_by_action[self.action]
+            ]
+        except KeyError:
+            return [
+                permission()
+                for permission in self.permission_classes_by_action["default"]
+            ]
 
 
 class SearchViewSet(viewsets.GenericViewSet):
