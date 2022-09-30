@@ -59,11 +59,10 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
             return Response("you do not have access")
 
 
-        ###filename = file проверка типа
 
-        FILE_FORMAT = ('jpg', 'png', 'jpeg')
+        FILE_FORMAT = ('image/jpeg', 'image/png')
 
-        if filename.endswith(FILE_FORMAT):
+        if file.content_type in FILE_FORMAT:
             try:
                 client_s3 = boto3.client(
                     's3',

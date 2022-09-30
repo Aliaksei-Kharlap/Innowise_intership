@@ -49,11 +49,10 @@ class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
         user = request.user
         file_name = user.username
 
-        ###filename = file
 
-        FILE_FORMAT = ('jpg', 'png', 'jpeg')
+        FILE_FORMAT = ('image/jpeg', 'image/png')
 
-        if filename.endswith(FILE_FORMAT):
+        if file.content_type in FILE_FORMAT:
             try:
                 client_s3 = boto3.client(
                     's3',
