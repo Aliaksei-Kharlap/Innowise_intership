@@ -20,7 +20,6 @@ class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
                    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
 
     queryset = User.objects.all()
-    serializer_class = UserSerializer
 
     permission_classes_by_action = {
         "list": [permissions.AdminModerOnly],
@@ -28,8 +27,22 @@ class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
         "create": [AllowAny],
         "retrieve": [AllowAny],
         "update": [permissions.OwnerOnlyUser],
-        "delete": [permissions.AdminModerOwnerOnly]
+        "delete": [permissions.AdminModerOwnerOnly],
     }
+
+    serializer_classes_by_action = {
+        "list": UserSerializer,
+        "default": UserSerializer,
+        "create": UserSerializer,
+        "retrieve": UserSerializer,
+        "update": UserSerializer,
+        "delete": UserSerializer,
+        "add_image": UserAddImageSerializer,
+    }
+
+    def get_serializer_class(self):
+        print(self.action)
+        return self.serializer_classes_by_action[self.action]
 
     def get_permissions(self):
         try:
@@ -43,18 +56,14 @@ class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
                 for permission in self.permission_classes_by_action["default"]
             ]
 
-    @action(detail=False, methods=['post'], serializer_class=UserAddImageSerializer)
+    @action(detail=False, methods=['post'])
     def add_image(self, request):
         file = request.FILES['image']
         user = request.user
         file_name = str(user.username)
-        print(type(file_name))
-        print(request.FILES['image'])
 
 
         FILE_FORMAT = ('image/jpeg', 'image/png',)
-        print(file.content_type)
-        print(type(file.content_type))
 
         if file.content_type in FILE_FORMAT:
             try:
@@ -70,7 +79,7 @@ class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
                     file_name,
                 )
                 url = f's3://{settings.AWS_STORAGE_BUCKET_NAME}/{file_name}'
-                print(url)
+
                 user.image_s3_path = url
                 user.save()
                 return Response("Success")
@@ -106,7 +115,7 @@ class UserBlockViewSet(viewsets.GenericViewSet):
         if user.is_valid():
             user.save()
             user_id=user.id
-            user = User.objects.get(pk=user_id)
+            user = get_object_or_404(User, pk=user_id)
             user.is_blocked = True
             user.save()
             pages = user.relpages.all()
@@ -122,7 +131,7 @@ class UserBlockViewSet(viewsets.GenericViewSet):
         user_id = self.get_serializer(data=request.data)
         if user_id.is_valid():
             user_id.save()
-            user = User.objects.get(pk=user_id.id)
+            user = get_object_or_404(User, pk=user_id.id)
             user.is_blocked = False
             user.save()
             pages = user.relpages.all()

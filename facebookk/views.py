@@ -48,10 +48,25 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
                 for permission in self.permission_classes_by_action["default"]
             ]
 
+    # serializer_classes_by_action = {
+    #     "list": UserSerializer,
+    #     "default": UserSerializer,
+    #     "create": UserSerializer,
+    #     "retrieve": UserSerializer,
+    #     "update": UserSerializer,
+    #     "delete": UserSerializer,
+    #     "add_image": UserAddImageSerializer,
+    # }
+    #
+    # def get_serializer_class(self):
+    #     print(self.action)
+    #     return self.serializer_classes_by_action[self.action]
+
+
     @action(detail=True, methods=['post'], serializer_class=PageAddImageSerializer)
     def add_page_image(self, request, pk):
         file = request.FILES['image']
-        page = Page.objects.get(pk=pk)
+        page = get_object_or_404(Page, pk=pk)
         user = request.user
         file_name = page.name + user.username
 
@@ -90,7 +105,7 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
 
     @action(detail=True, methods=['get'])
     def get_all_pages_tags(self, request, pk):
-        tags = Page.objects.get(pk=pk, is_block=False).tags.all()
+        tags = get_object_or_404(Page, pk=pk, is_block=False).tags.all()
         serializer = TagSerializer(tags, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -98,8 +113,8 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
     def create_tag(self, request, pk):
         serializer = TagSerializer(data=request.data)
         if serializer.is_valid():
-            page = Page.objects.get(pk=pk, is_block=False)
-            pages = User.objects.get(pk=request.user.pk).relpages.all()
+            page = get_object_or_404(Page, pk=pk, is_block=False)
+            pages = get_object_or_404(User, pk=request.user.pk).relpages.all()
             if page in pages:
                 obj = serializer.save()
                 page.tags.add(obj)
@@ -112,8 +127,8 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
         serializer = TagSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            tag = Tag.objects.get(pk=serializer.id)
-            page = Page.objects.get(pk=pk, is_block=False)
+            tag = get_object_or_404(Tag, pk=serializer.id)
+            page = get_object_or_404(Page, pk=pk, is_block=False)
             page.tags.remove(tag)
             page.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -123,9 +138,9 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
     def follows_request(self, request, pk):
         if request.method == "GET":
             pages = request.user.relpages.all()
-            page = Page.objects.get(pk=pk)
+            page = get_object_or_404(Page, pk=pk)
             if page in pages:
-                subs = Page.objects.get(pk=pk, is_block=False).follow_requests.all()
+                subs = get_object_or_404(Page, pk=pk, is_block=False).follow_requests.all()
                 serializer = UserSerializer(subs, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             else:
@@ -133,7 +148,7 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
 
         if request.method == "HEAD":
             pages = request.user.relpages.all()
-            page = Page.objects.get(pk=pk, is_block=False)
+            page = get_object_or_404(Page, pk=pk, is_block=False)
             if page in pages:
                 subs = page.follow_requests.all()
                 for sub in subs:
@@ -145,7 +160,7 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
                 return Response("You do not have acces")
 
         if request.method == "DELETE":
-            page = Page.objects.get(pk=pk, is_block=False)
+            page = get_object_or_404(Page, pk=pk)
             pages = request.user.relpages.all()
             subs = page.follow_requests.all()
             if page in pages:
@@ -158,12 +173,12 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
     @action(detail=True, methods=['post'])
     def add_folowwer(self, request, pk):
         pages = request.user.relpages.all()
-        page = Page.objects.get(pk=pk, is_block=False)
+        page = get_object_or_404(Page, pk=pk, is_block=False)
         if page in pages:
             user_id = UserBlockSerializer(data=request.data)
             if user_id.is_valid():
                 user_id = user_id.validated_data["id"]
-                user = User.objects.get(pk=user_id)
+                user = get_object_or_404(User, pk=user_id)
                 if user in page.follow_requests.all():
                     page.follow_requests.remove(user)
                     page.followers.add(user)
@@ -174,12 +189,12 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
     @action(detail=True, methods=['post'])
     def del_folowwer(self, request, pk):
         pages = request.user.relpages.all()
-        page = Page.objects.get(pk=pk, is_block=False)
+        page = get_object_or_404(Page, pk=pk, is_block=False)
         if page in pages:
             user_id = UserBlockSerializer(data=request.data)
             if user_id.is_valid():
                 user_id = user_id.validated_data["id"]
-                user = User.objects.get(pk=user_id)
+                user = get_object_or_404(User, pk=user_id)
                 if user in page.follow_requests.all():
                     page.follow_requests.remove(user)
                     page.save()
@@ -212,7 +227,7 @@ class PostsViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            send(serializer.validated_data["page"].id)
+            send.delay(serializer.validated_data["page"].id)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -239,7 +254,7 @@ class PostsViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
     def create_like(self, request, pk):
         serializer = LikeSerializer(data=request.data)
         if serializer.is_valid():
-            post = Post.objects.get(pk=pk)
+            post = get_object_or_404(Post, pk=pk)
             user = request.user
             posts = Post.objects.filter(like_fil__user_from=request.user)
             if post in posts:
@@ -254,7 +269,7 @@ class PostsViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
     def create_unlike(self, request, pk):
         serializer = UnLikeSerializer(data=request.data)
         if serializer.is_valid():
-            post = Post.objects.get(pk=pk)
+            post = get_object_or_404(Post, pk=pk)
             user = request.user
             posts = Post.objects.filter(unlike_fil__user_from=request.user)
             if post in posts:
