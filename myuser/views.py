@@ -13,7 +13,7 @@ from business_logic import permissions
 from facebookk.models import Post
 from mysite import settings
 from myuser.models import User
-from myuser.serializers import UserSerializer, LoginSerializer, UserBlockSerializer
+from myuser.serializers import UserSerializer, LoginSerializer, UserBlockSerializer, UserAddImageSerializer
 
 
 class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateModelMixin,
@@ -43,14 +43,18 @@ class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
                 for permission in self.permission_classes_by_action["default"]
             ]
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], serializer_class=UserAddImageSerializer)
     def add_image(self, request):
         file = request.FILES['image']
         user = request.user
-        file_name = user.username
+        file_name = str(user.username)
+        print(type(file_name))
+        print(request.FILES['image'])
 
 
-        FILE_FORMAT = ('image/jpeg', 'image/png')
+        FILE_FORMAT = ('image/jpeg', 'image/png',)
+        print(file.content_type)
+        print(type(file.content_type))
 
         if file.content_type in FILE_FORMAT:
             try:
@@ -60,19 +64,21 @@ class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
                 )
 
-                client_s3.upload_file(
+                client_s3.upload_fileobj(
                     file,
                     settings.AWS_STORAGE_BUCKET_NAME,
                     file_name,
                 )
                 url = f's3://{settings.AWS_STORAGE_BUCKET_NAME}/{file_name}'
+                print(url)
                 user.image_s3_path = url
                 user.save()
+                return Response("Success")
+            except Exception as err:
 
-            except:
-                Response("Something wrong, try again")
+                return Response(f"{err}")
         else:
-            Response("This format is not allowed")
+            return Response("This format is not allowed")
 
 
 

@@ -36,3 +36,6 @@ class UnLikeSerializer(serializers.ModelSerializer):
 
 class SearchSerializers(serializers.Serializer):
     search = serializers.CharField(max_length=80)
+
+class PageAddImageSerializer(serializers.Serializer):
+    image = serializers.FileField()

@@ -15,7 +15,7 @@ class Page(models.Model):
    tags = models.ManyToManyField('facebookk.Tag', related_name='pages', blank=True)
    owner = models.ForeignKey('myuser.User', on_delete=models.CASCADE, related_name='relpages')
    followers = models.ManyToManyField('myuser.User', related_name='follows', blank=True, related_query_name="allfol")
-   image = models.URLField(null=True, blank=True)
+   image = models.CharField(max_length=200, null=True, blank=True)
    is_private = models.BooleanField(default=False)
    follow_requests = models.ManyToManyField('myuser.User', related_name='requests', blank=True)
    created_date = models.DateTimeField(auto_now_add=True)

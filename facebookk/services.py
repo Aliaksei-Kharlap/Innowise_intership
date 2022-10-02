@@ -13,7 +13,7 @@ def send(page_id):
     send_mail(
         f'New post from {page.name}',
         'Do not forget to like',
-        f'{settings.MY_MAIL}',
+        settings.EMAIL_HOST_USER,
         [user.email for user in users],
         fail_silently=False
         )

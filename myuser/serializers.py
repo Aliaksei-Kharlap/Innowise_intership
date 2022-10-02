@@ -46,3 +46,7 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 'A user with this email and password was not found.'
             )
+
+
+class UserAddImageSerializer(serializers.Serializer):
+    image = serializers.FileField()

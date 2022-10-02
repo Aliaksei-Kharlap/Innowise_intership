@@ -9,7 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from business_logic import permissions
 from facebookk.models import Page, Post, Tag, Like, UnLike
 from facebookk.serializers import PageSerializer, TagSerializer, PostSerializer, LikeSerializer, \
-    UnLikeSerializer, SearchSerializers
+    UnLikeSerializer, SearchSerializers, PageAddImageSerializer
 from facebookk.services import send
 from mysite import settings
 from myuser.models import User
@@ -48,7 +48,7 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
                 for permission in self.permission_classes_by_action["default"]
             ]
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], serializer_class=PageAddImageSerializer)
     def add_page_image(self, request, pk):
         file = request.FILES['image']
         page = Page.objects.get(pk=pk)
@@ -57,8 +57,6 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
 
         if page not in user.relpages.all():
             return Response("you do not have access")
-
-
 
         FILE_FORMAT = ('image/jpeg', 'image/png')
 
@@ -70,19 +68,19 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
                 )
 
-                client_s3.upload_file(
+                client_s3.upload_fileobj(
                     file,
                     settings.AWS_STORAGE_BUCKET_NAME,
                     file_name,
                 )
                 url = f's3://{settings.AWS_STORAGE_BUCKET_NAME}/{file_name}'
-                user.image_s3_path = url
-                user.save()
-
-            except:
-                Response("Something wrong, try again")
+                page.image = url
+                page.save()
+                return Response("Success")
+            except Exception as err:
+                return Response(f"{err}")
         else:
-            Response("This format is not allowed")
+            return Response("This format is not allowed")
 
     @action(detail=False, methods=['get'])
     def get_block_pages(self, request, pk):
@@ -214,7 +212,7 @@ class PostsViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            send.delay(serializer.data.page.id)
+            send(serializer.validated_data["page"].id)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
