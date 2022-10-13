@@ -1,19 +1,14 @@
-import datetime
 
-import boto3
-from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework import mixins
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from business_logic import permissions
-from facebookk.models import Post
-from mysite import settings
+from business_logic.myuser_services import upload_file_to_s3_and_return_answer, block_unblock_user_and_return_answer
 from myuser.models import User
-from myuser.serializers import UserSerializer, LoginSerializer, UserBlockSerializer, UserAddImageSerializer
+from myuser.serializers import UserSerializer, LoginSerializer, UserBlockOrUnblockSerializer, UserAddImageSerializer
 
 
 class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateModelMixin,
@@ -41,7 +36,6 @@ class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
     }
 
     def get_serializer_class(self):
-        print(self.action)
         return self.serializer_classes_by_action[self.action]
 
     def get_permissions(self):
@@ -58,36 +52,8 @@ class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
 
     @action(detail=False, methods=['post'])
     def add_image(self, request):
-        file = request.FILES['image']
-        user = request.user
-        file_name = str(user.username)
+        return upload_file_to_s3_and_return_answer(request)
 
-
-        FILE_FORMAT = ('image/jpeg', 'image/png',)
-
-        if file.content_type in FILE_FORMAT:
-            try:
-                client_s3 = boto3.client(
-                    's3',
-                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                )
-
-                client_s3.upload_fileobj(
-                    file,
-                    settings.AWS_STORAGE_BUCKET_NAME,
-                    file_name,
-                )
-                url = f's3://{settings.AWS_STORAGE_BUCKET_NAME}/{file_name}'
-
-                user.image_s3_path = url
-                user.save()
-                return Response("Success")
-            except Exception as err:
-
-                return Response(f"{err}")
-        else:
-            return Response("This format is not allowed")
 
 
 
@@ -97,8 +63,7 @@ class LoginViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
 
 
     def create(self, request):
-        user = request.data
-        serializer = self.get_serializer(data=user)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
@@ -106,41 +71,15 @@ class LoginViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
 
 
 class UserBlockViewSet(viewsets.GenericViewSet):
-
     permission_classes = (permissions.AdminModerOnly,)
-    serializer_class = UserBlockSerializer
+    serializer_class = UserBlockOrUnblockSerializer
+
     @action(detail=False, methods=['post'])
     def block(self, request):
         user = self.get_serializer(data=request.data)
-        if user.is_valid():
-            user.save()
-            user_id=user.id
-            user = get_object_or_404(User, pk=user_id)
-            user.is_blocked = True
-            user.save()
-            pages = user.relpages.all()
-            for page in pages:
-                page.is_block = True
-                page.save()
-            return Response(status=status.HTTP_200_OK)
-        else:
-            return Response("Something wrong")
+        return block_unblock_user_and_return_answer(user, True)
 
     @action(detail=False, methods=['post'])
     def unblock(self, request):
-        user_id = self.get_serializer(data=request.data)
-        if user_id.is_valid():
-            user_id.save()
-            user = get_object_or_404(User, pk=user_id.id)
-            user.is_blocked = False
-            user.save()
-            pages = user.relpages.all()
-            for page in pages:
-                page.is_block = False
-                page.unblock_date = datetime.datetime.now()
-                page.save()
-            return Response(status=status.HTTP_200_OK)
-        else:
-            return Response('Something wrong')
-
-
+        user = self.get_serializer(data=request.data)
+        return block_unblock_user_and_return_answer(user, False)

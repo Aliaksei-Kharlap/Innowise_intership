@@ -4,18 +4,23 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-django = "*"
+django = ">=4.1.1"
 django-rest-framework = "*"
-python-dotenv = "*"
-psycopg2-binary = "*"
-selenium = "*"
+python-dotenv = ">=0.19.2"
+psycopg2-binary = ">=2.9.3"
+selenium = ">=4.5.0"
 djangorestframework-jwt = "*"
-celery = "*"
-pip = "*"
-boto3 = "*"
+celery = ">=5.2.7"
+pip = ">=22.2.2"
+boto3 = ">=1.24.84"
 django-storages = "*"
 django-ses = "*"
-pycurl = "*"
+pycurl = ">=7.45.1"
+fastapi = "*"
+uvicorn = "*"
+django-extensions = "*"
+django-shell-plus = "*"
+requests = "*"
 
 [dev-packages]
 

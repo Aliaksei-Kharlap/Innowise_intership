@@ -54,6 +54,9 @@ INSTALLED_APPS = [
     'facebookk',
     'myuser',
     'storages',
+    "shell_plus",
+    'django_extensions',
+    "django.contrib.postgres",
 ]
 
 MIDDLEWARE = [
@@ -168,10 +171,3 @@ AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME")
 AWS_SES_REGION_NAME = os.getenv("AWS_SES_REGION_NAME")
-
-# REST_FRAMEWORK = {
-#     'DEFAULT_PERMISSION_CLASSES': [
-#         'rest_framework.permissions.IsAuthenticated',
-#         'business_logic.permissions.OwnerOnlyPage'
-#     ]
-# }

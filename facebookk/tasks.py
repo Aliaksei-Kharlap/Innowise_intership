@@ -5,7 +5,6 @@ from mysite import settings
 from myuser.models import User
 from mysite.celery import app
 
-from celery import shared_task
 
 @app.task
 def send(page_id):
@@ -18,4 +17,3 @@ def send(page_id):
         [user.email for user in users],
         fail_silently=False
         )
-    print("Success")

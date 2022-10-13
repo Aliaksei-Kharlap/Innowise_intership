@@ -23,15 +23,16 @@ class PostSerializer(serializers.ModelSerializer):
         fields = ('id', 'page', 'content', 'reply_to', 'created_at', 'updated_at')
 
 
-class LikeSerializer(serializers.ModelSerializer):
+class LikeSerializer(serializers.Serializer):
     class Meta:
         model = Like
         fields = ('id', 'user_from', 'post_to')
 
-class UnLikeSerializer(serializers.ModelSerializer):
+class UnLikeSerializer(serializers.Serializer):
     class Meta:
         model = UnLike
         fields = ('id', 'user_from', 'post_to')
+
 
 
 class SearchSerializers(serializers.Serializer):
@@ -39,3 +40,8 @@ class SearchSerializers(serializers.Serializer):
 
 class PageAddImageSerializer(serializers.Serializer):
     image = serializers.FileField()
+
+class StatisticSerializer(serializers.Serializer):
+    posts_count = serializers.IntegerField()
+    followers_count = serializers.IntegerField()
+    likes_count = serializers.IntegerField()
