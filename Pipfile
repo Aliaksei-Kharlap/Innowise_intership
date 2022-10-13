@@ -10,6 +10,12 @@ python-dotenv = "*"
 psycopg2-binary = "*"
 selenium = "*"
 djangorestframework-jwt = "*"
+celery = "*"
+pip = "*"
+boto3 = "*"
+django-storages = "*"
+django-ses = "*"
+pycurl = "*"
 
 [dev-packages]
 

@@ -11,6 +11,10 @@ services:
       - POSTGRES_PASSWORD=password
     ports:
       - "5432:5432"
+  rabbitmq:
+    image: rabbitmq
+    ports:
+      - "5672:5672"
   web:
     build: .
     ports:

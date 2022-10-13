@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.admin import helpers
 
-from facebookk.models import Tag, Page, Post
+from facebookk.models import Tag, Page, Post, Like, UnLike
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -21,3 +21,21 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ('id', 'page', 'content', 'reply_to', 'created_at', 'updated_at')
+
+
+class LikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Like
+        fields = ('id', 'user_from', 'post_to')
+
+class UnLikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UnLike
+        fields = ('id', 'user_from', 'post_to')
+
+
+class SearchSerializers(serializers.Serializer):
+    search = serializers.CharField(max_length=80)
+
+class PageAddImageSerializer(serializers.Serializer):
+    image = serializers.FileField()
