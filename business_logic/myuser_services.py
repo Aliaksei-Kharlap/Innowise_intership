@@ -31,7 +31,7 @@ def upload_file_to_s3_and_return_answer(request):
             url = f's3://{settings.AWS_STORAGE_BUCKET_NAME}/{file_name}'
 
             user.image_s3_path = url
-            user.save()
+            user.save(update_fields=['image_s3_path'])
             return Response("Success")
         except Exception as err:
 
@@ -46,13 +46,13 @@ def block_unblock_user_and_return_answer(user, status):
         user_id = user.id
         user = get_object_or_404(User, pk=user_id.id)
         user.is_blocked = status
-        user.save()
+        user.save(update_fields=['is_blocked'])
         pages = user.relpages.all()
         for page in pages:
             page.is_block = status
             if not status:
                 page.unblock_date = datetime.datetime.now()
-            page.save()
+            page.save(update_fields=['is_block', 'unblock_date'])
         return Response(status=status.HTTP_200_OK)
     else:
         return Response('Something wrong')

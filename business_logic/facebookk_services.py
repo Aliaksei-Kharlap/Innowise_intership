@@ -1,5 +1,5 @@
 import boto3
-from django.contrib.postgres.search import SearchVector
+from django.contrib.postgres.search import SearchQuery, SearchVector, SearchRank
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -39,7 +39,7 @@ def add_page_image_and_return_answer(request, pk):
             )
             url = f's3://{settings.AWS_STORAGE_BUCKET_NAME}/{file_name}'
             page.image = url
-            page.save()
+            page.save(update_fields=['image'])
             return Response("Success")
         except Exception as err:
             return Response(f"{err}")
@@ -54,7 +54,7 @@ def create_tag_and_return_answer(request, pk, serializer):
         if page in pages:
             obj = serializer.save()
             page.tags.add(obj)
-            page.save()
+            page.save(update_fields=['tags'])
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response("Do not have acсess")
@@ -65,7 +65,7 @@ def delete_tag_and_return_answer(serializer, pk):
         tag = get_object_or_404(Tag, pk=serializer.id)
         page = get_object_or_404(Page, pk=pk, is_block=False)
         page.tags.remove(tag)
-        page.save()
+        page.save(update_fields=['tags'])
         return Response(status=status.HTTP_204_NO_CONTENT)
     else:
         return Response("Do not have acсess")
@@ -88,9 +88,9 @@ def modify_follows_requests_and_return_answer(request, pk):
         if page in pages:
             subs = page.follow_requests.all()
             for sub in subs:
-                page.followers.add(subs)
+                page.followers.add(sub)
                 page.follow_requests.remove()
-            page.save()
+            page.save(update_fields=['followers', 'follow_requests'])
             return Response(status=status.HTTP_200_OK)
         else:
             return Response("You do not have access")
@@ -98,10 +98,9 @@ def modify_follows_requests_and_return_answer(request, pk):
     if request.method == "DELETE":
         page = get_object_or_404(Page, pk=pk)
         pages = request.user.relpages.all()
-        subs = page.follow_requests.all()
         if page in pages:
             page.follow_requests.clear()
-            page.save()
+            page.save(update_fields=['follow_requests'])
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response("You do not have access")
@@ -118,7 +117,7 @@ def add_or_del_follower_and_return_answer(request, pk, mod):
                 page.follow_requests.remove(user)
                 if mod:
                     page.followers.add(user)
-                page.save()
+                page.save(update_fields=['followers', 'follow_requests'])
                 return Response(status=status.HTTP_200_OK)
         return Response("You are wrong")
 
@@ -137,8 +136,6 @@ def create_like_or_unlike(request, serializer, pk, mod):
             posts = Post.objects.filter(like_fil__user_from=request.user)
         else:
             posts = Post.objects.filter(unlike_fil__user_from=request.user)
-        print(post)
-        print(posts)
         if post in posts:
             return Response("You already created this for this post")
         else:
@@ -147,12 +144,16 @@ def create_like_or_unlike(request, serializer, pk, mod):
     else:
         return Response("Something wrong, try again")
 
-def search_and_return_answer(search):
-    if search.is_valid():
-        searchh = search.validated_data["search"]
-        users = User.objects.annotate(search=SearchVector('username'),).filter(search=searchh, is_blocked=False)
-        pages = Page.objects.annotate(search=SearchVector('name', 'uuid', 'tags__name'),).filter(search=searchh,
-                                                                                        is_block=False).distinct()
+def search_and_return_answer(value):
+    if value.is_valid():
+        search = value.validated_data["search"]
+        user_vector = SearchVector('username')
+        pages_vector = SearchVector('name', 'uuid', 'tags__name')
+        query = SearchQuery(search)
+        users = User.objects.annotate(rank=SearchRank(user_vector, query)).filter(rank__gte=0.001, is_blocked=False).\
+            order_by('-rank')
+        pages = Page.objects.annotate(rank=SearchRank(pages_vector, query)).filter(rank__gte=0.001, is_blocked=False). \
+            order_by('-rank')
         users = UserSerializer(users, many=True)
         pages = PageSerializer(pages, many=True)
 
