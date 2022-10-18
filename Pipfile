@@ -16,6 +16,7 @@ boto3 = "*"
 django-storages = "*"
 django-ses = "*"
 pycurl = "*"
+pytest = "*"
 
 [dev-packages]
 

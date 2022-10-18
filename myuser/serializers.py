@@ -7,7 +7,7 @@ class UserSerializer(serializers.ModelSerializer):
     is_blocked = serializers.BooleanField(default=False, read_only=True)
     class Meta:
         model = User
-        fields = ('id', 'email', 'username', 'image_s3_path', 'role', 'title', "is_blocked")
+        fields = ('id', 'email', 'password', 'username', 'image_s3_path', 'role', 'title', "is_blocked",)
 
 class UserBlockSerializer(serializers.Serializer):
     id = serializers.IntegerField()
