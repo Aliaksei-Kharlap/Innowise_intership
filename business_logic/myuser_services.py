@@ -11,8 +11,7 @@ from myuser.models import User
 def upload_file_to_s3_and_return_answer(request):
     file = request.FILES['image']
     user = request.user
-    file_name = str(user.username)
-
+    file_name = user.username
     FILE_FORMAT = ('image/jpeg', 'image/png',)
 
     if file.content_type in FILE_FORMAT:
@@ -34,10 +33,8 @@ def upload_file_to_s3_and_return_answer(request):
             user.save(update_fields=['image_s3_path'])
             return Response("Success")
         except Exception as err:
-
             return Response(f"{err}")
-    else:
-        return Response("This format is not allowed")
+    return Response("This format is not allowed")
 
 
 def block_unblock_user_and_return_answer(user, status):
@@ -54,5 +51,4 @@ def block_unblock_user_and_return_answer(user, status):
                 page.unblock_date = datetime.datetime.now()
             page.save(update_fields=['is_block', 'unblock_date'])
         return Response(status=status.HTTP_200_OK)
-    else:
-        return Response('Something wrong')
+    return Response('Something wrong')
