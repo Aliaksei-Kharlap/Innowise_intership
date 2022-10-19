@@ -1,10 +1,11 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
-from django.test import TestCase
-from django.urls import resolve, reverse
+from mysite import settings
+
+
+import pytest
 from rest_framework import status
 from rest_framework.test import APITestCase
-import pytest
 from facebookk.models import Page
 from myuser.models import User
 
@@ -89,20 +90,14 @@ class FacebookkTests(APITestCase):
 
         self.assertEqual(response["posts_count"], 1)
 
-
-
-
-
 @pytest.fixture
 def page_example(self):
-
-    user = User.objects.get(pk=1)
     page = {
             "name": "Secoddnd page2",
             "uuid": "dsfsdfsssdddds222sss",
             "description": "sdssssss2sssssssssssssssssssssss",
 
-            "owner": user,
+            "owner": 1,
 
             "image": None,
             "is_private": False,
@@ -116,6 +111,9 @@ def test_create_page(page_example):
     Page.objects.create(**page_example)
     val = Page.objects.get(uuid="dsfsdfsssdddds222sss").name
     assert val == "Secoddnd page2"
+
+
+
 
 
 
