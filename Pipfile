@@ -21,6 +21,7 @@ uvicorn = "*"
 django-extensions = "*"
 django-shell-plus = "*"
 requests = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 
