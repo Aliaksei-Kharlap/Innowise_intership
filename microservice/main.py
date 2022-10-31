@@ -1,19 +1,30 @@
+import asyncio
+import json
 
 from fastapi import FastAPI
 
-from microservice.database import Session
-from microservice.models import User, Page, Post, Like, UserPage
-from dotenv import load_dotenv
-from pathlib import Path
+from database import Session, KAFKA_INSTANCE
+from models import User, Post, Like, UserPage
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
 
-load_dotenv()
-env_path = Path('.')/'.env'
-load_dotenv(dotenv_path=env_path)
-
+loop = asyncio.get_event_loop()
+aioproducer = AIOKafkaProducer(loop=loop, bootstrap_servers=KAFKA_INSTANCE)
+consumer = AIOKafkaConsumer("req", bootstrap_servers=KAFKA_INSTANCE, loop=loop)
 
 app = FastAPI()
 
+
+@app.on_event("startup")
+async def startup_event():
+    await aioproducer.start()
+    loop.create_task(consume())
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await aioproducer.stop()
+    await consumer.stop()
 
 @app.get('/{id}')
 async def index(id: int):
@@ -49,3 +60,24 @@ async def index(id: int):
 
 
     return answer
+
+
+async def consume():
+    await consumer.start()
+    try:
+        async for msg in consumer:
+            id = msg.value["id"]
+            posts_count = Session.query(Post).filter(Post.page_id == id).count()
+            followers_count = Session.query(User).join(UserPage, User.id == UserPage.user_id).filter(
+                UserPage.page_id == id).count()
+            likes_count = Session.query(Like).join(Post, Like.post_to_id == Post.id).filter(Post.page_id == id).count()
+        answer = {
+            "id": id,
+            "posts_count": posts_count,
+            "followers_count": followers_count,
+            "likes_count": likes_count,
+        }
+
+        await aioproducer.send("res", json.dumps(answer).encode("utf-8"))
+    finally:
+        await consumer.stop()

@@ -16,6 +16,7 @@ USER = os.getenv("USER2")
 PASSWORD = os.getenv("PASSWORD2")
 HOST = os.getenv("HOST1")
 PORT = os.getenv("PORT1")
+KAFKA_INSTANCE = os.getenv("KAFKA_INSTANCE")
 
 SQLALCHEMY_DATABASE_URL = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{NAME}"
 engine = create_engine(SQLALCHEMY_DATABASE_URL)

@@ -2,3 +2,6 @@
 .idea
 /data/
 Pipfile.lock
+/kafka-data/
+data/
+kafka-data/

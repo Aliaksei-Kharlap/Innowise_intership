@@ -11,13 +11,65 @@ services:
       - POSTGRES_PASSWORD=password
     ports:
       - "5432:5432"
-  rabbitmq:
-    image: rabbitmq
-    ports:
-      - "5672:5672"
+#  rabbitmq:
+#    image: rabbitmq
+#    ports:
+#      - "5672:5672"
   web:
     build: .
     ports:
       - "8000:8000"
     depends_on:
       - db
+      - zookeeper
+      - kafka
+    links:
+      - kafka
+
+  microservice:
+    build: ./microservice
+    ports:
+      - "8001:8001"
+    depends_on:
+      - web
+      - zookeeper
+      - kafka
+    links:
+      - kafka
+      - web
+
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+#    ports:
+#      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+#    ports:
+#      - "9092:9092"
+    container_name: kafka
+    hostname: kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_CREATE_TOPICS: "res:1:1, req:1:1"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      #KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092 #PLAINTEXT://0.0.0.0:29092,
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092, #PLAINTEXT_HOST://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      #KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      #KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    restart: always
+    volumes:
+      - ./kafka-data:/var/lib/kafka/data

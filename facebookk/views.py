@@ -1,7 +1,8 @@
 import json
-import requests
+from datetime import datetime
 
 from django.shortcuts import get_object_or_404
+from kafka import KafkaConsumer, KafkaProducer
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -110,9 +111,35 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
 
     @action(detail=True, methods=['get'])
     def get_statistics(self, request, pk):
-        res = json.loads(requests.get(f'http://127.0.0.1:8000/{pk}').content)
-        res = self.get_serializer(res)
-        return Response(res.data, status=status.HTTP_200_OK)
+        producer = KafkaProducer(
+            bootstrap_servers=["kafka:9092"],
+            value_serializer=lambda x: json.dumps(x).encode("utf-8")
+        )
+        producer.send("req", value={'id':pk})
+
+        concumer = KafkaConsumer(
+            "res",
+            bootstrap_servers=["kafka:9092"],
+            auto_offset_reser="earliest",
+            enable_auto_commit=True,
+            value_deserializer=lambda x: json.loads(x.decode("utf-8"))
+        )
+
+        time = datetime.now()
+        while True:
+            for mess in concumer:
+                if mess.value["id"] == pk:
+                    res = mess.value
+                    return Response(res.data, status=status.HTTP_200_OK)
+                    break
+            time2 = datetime.now()
+            if time2.second - time.second > 5:
+                break
+        return Response("Something wrong, try again")
+
+        #res = json.loads(requests.get(f'http://127.0.0.1:8001/{pk}').content)
+        #res = self.get_serializer(res)
+        #return Response(res.data, status=status.HTTP_200_OK)
 
 class PostsViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateModelMixin,
                    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):

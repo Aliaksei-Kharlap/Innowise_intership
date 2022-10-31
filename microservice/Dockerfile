@@ -6,9 +6,9 @@ RUN pip install pipenv
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /code
+WORKDIR /code2
 
-COPY Pipfile Pipfile.lock ./
+COPY Pipfile ./
 
 RUN pipenv install --deploy --ignore-pipfile
 

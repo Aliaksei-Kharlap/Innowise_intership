@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Table
-from microservice.database import Base, metadata, engine
+from database import Base, metadata, engine
 
 
 
