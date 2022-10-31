@@ -5,3 +5,6 @@ Pipfile.lock
 /kafka-data/
 data/
 kafka-data/
+data/db
+data
+kafka-data
