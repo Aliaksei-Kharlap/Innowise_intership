@@ -1,5 +1,6 @@
 import json
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 
 from django.shortcuts import get_object_or_404
 from kafka import KafkaConsumer, KafkaProducer
@@ -12,7 +13,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from business_logic import permissions
 from business_logic.facebookk_services import add_page_image_and_return_answer, create_tag_and_return_answer, \
     delete_tag_and_return_answer, modify_follows_requests_and_return_answer, add_or_del_follower_and_return_answer, \
-    create_and_send_mail_and_return_answer, create_like_or_unlike, search_and_return_answer
+    create_and_send_mail_and_return_answer, create_like_or_unlike, search_and_return_answer, \
+    get_statistics_and_return_answer
 from facebookk.models import Page, Post, Like, UnLike
 from facebookk.serializers import PageSerializer, TagSerializer, PostSerializer, SearchSerializers, \
     PageAddImageSerializer, StatisticSerializer, LikeSerializer, UnLikeSerializer
@@ -60,6 +62,7 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
         "get_block_pages": PageSerializer,
         "get_all_pages_tags": TagSerializer,
         "get_statistics": StatisticSerializer,
+        "partial_update": PageSerializer,
 
     }
 
@@ -111,42 +114,13 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
 
     @action(detail=True, methods=['get'])
     def get_statistics(self, request, pk):
-        producer = KafkaProducer(
-            bootstrap_servers=["kafka:9092"],
-            value_serializer=lambda x: json.dumps(x).encode("utf-8")
-        )
-        producer.send("req", value={'id':pk})
-
-        concumer = KafkaConsumer(
-            "res",
-            bootstrap_servers=["kafka:9092"],
-            auto_offset_reser="earliest",
-            enable_auto_commit=True,
-            value_deserializer=lambda x: json.loads(x.decode("utf-8"))
-        )
-
-        time = datetime.now()
-        while True:
-            for mess in concumer:
-                if mess.value["id"] == pk:
-                    res = mess.value
-                    return Response(res.data, status=status.HTTP_200_OK)
-                    break
-            time2 = datetime.now()
-            if time2.second - time.second > 5:
-                break
-        return Response("Something wrong, try again")
-
-        #res = json.loads(requests.get(f'http://127.0.0.1:8001/{pk}').content)
-        #res = self.get_serializer(res)
-        #return Response(res.data, status=status.HTTP_200_OK)
+        return get_statistics_and_return_answer(pk)
 
 class PostsViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateModelMixin,
                    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
 
     queryset = Post.objects.filter(page__is_block=False)
     serializer_class = PostSerializer
-
 
     permission_classes_by_action = {
         "list": [IsAuthenticated],
@@ -243,7 +217,6 @@ class UnLikeViewSet(viewsets.GenericViewSet, mixins.DestroyModelMixin, mixins.Re
                 permission()
                 for permission in self.permission_classes_by_action["default"]
             ]
-
 
 class SearchViewSet(viewsets.GenericViewSet):
     serializer_class = SearchSerializers

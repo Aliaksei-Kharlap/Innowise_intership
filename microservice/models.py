@@ -2,8 +2,6 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.schema import Table
 from database import Base, metadata, engine
 
-
-
 # association_table = Table(
 #     "facebookk_page_followers",
 #     metadata,
@@ -16,7 +14,6 @@ class UserPage(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("myuser_user.id"))
     page_id = Column(Integer, ForeignKey("facebookk_page.id"))
-
 
 class User(Base):
     __tablename__ = Table("myuser_user", metadata, autoload=True, autoload_with=engine)
@@ -36,9 +33,6 @@ class Post(Base):
     __tablename__ = Table("facebookk_post", metadata, autoload=True)
     id = Column(Integer, primary_key=True)
     page_id = Column(Integer)
-
-
-
 
 class Like(Base):
     __tablename__ = Table("facebookk_like", metadata, autoload=True)

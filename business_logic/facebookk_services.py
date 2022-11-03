@@ -1,7 +1,11 @@
+import json
+from datetime import datetime, timedelta
+
 import boto3
 from django.contrib.postgres.search import SearchQuery, SearchVector, SearchRank
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from kafka import KafkaProducer, KafkaConsumer
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -9,6 +13,7 @@ from facebookk.serializers import PageSerializer
 from facebookk.tasks import send
 from facebookk.models import Page, Tag, Post
 from mysite import settings
+from mysite.settings import KAFKA_SERVICE, KAFKA_TOPIC_REQ, KAFKA_TOPIC_RES
 from myuser.models import User
 from myuser.serializers import UserSerializer, UserBlockOrUnblockSerializer
 
@@ -163,3 +168,34 @@ def search_and_return_answer(value):
             'pages': pages.data
         })
     return Response("Something wrong")
+
+def get_statistics_and_return_answer(pk):
+
+    producer = KafkaProducer(
+        bootstrap_servers=[KAFKA_SERVICE],
+        value_serializer=lambda x: json.dumps(x).encode("utf-8"),
+        api_version=(2, 0, 2)
+    )
+    producer.send(KAFKA_TOPIC_REQ, value={'id': pk})
+    producer.close()
+
+    consumer = KafkaConsumer(
+        KAFKA_TOPIC_RES,
+        bootstrap_servers=[KAFKA_SERVICE],
+        enable_auto_commit=True,
+        auto_offset_reset='earliest',
+        value_deserializer=lambda x: json.loads(x.decode("utf-8")),
+        api_version=(2, 0, 2)
+    )
+
+    time_status_first = datetime.now()
+    time_limit = timedelta(seconds=5)
+    while True:
+        for mess in consumer:
+            if mess.value['id'] == int(pk):
+                res = mess.value
+                consumer.close()
+                return Response(res, status=status.HTTP_200_OK)
+        time_status_second = datetime.now()
+        if time_status_second - time_status_first > time_limit:
+            return Response("Something wrong, try again")
