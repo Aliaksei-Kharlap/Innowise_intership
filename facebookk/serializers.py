@@ -23,12 +23,12 @@ class PostSerializer(serializers.ModelSerializer):
         fields = ('id', 'page', 'content', 'reply_to', 'created_at', 'updated_at')
 
 
-class LikeSerializer(serializers.Serializer):
+class LikeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Like
         fields = ('id', 'user_from', 'post_to')
 
-class UnLikeSerializer(serializers.Serializer):
+class UnLikeSerializer(serializers.ModelSerializer):
     class Meta:
         model = UnLike
         fields = ('id', 'user_from', 'post_to')

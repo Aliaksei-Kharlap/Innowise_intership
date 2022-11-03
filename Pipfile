@@ -21,6 +21,9 @@ uvicorn = "*"
 django-extensions = "*"
 django-shell-plus = "*"
 requests = "*"
+sqlalchemy = "*"
+aiokafka = "*"
+kafka-python = "*"
 
 [dev-packages]
 

@@ -1,7 +1,6 @@
-from django.contrib.auth.models import AbstractUser
+
 from django.db import models
 
-from myuser.models import User
 
 
 class Tag(models.Model):

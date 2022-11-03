@@ -1,7 +1,9 @@
 import json
-import requests
+import time
+from datetime import datetime, timedelta
 
 from django.shortcuts import get_object_or_404
+from kafka import KafkaConsumer, KafkaProducer
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,7 +13,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from business_logic import permissions
 from business_logic.facebookk_services import add_page_image_and_return_answer, create_tag_and_return_answer, \
     delete_tag_and_return_answer, modify_follows_requests_and_return_answer, add_or_del_follower_and_return_answer, \
-    create_and_send_mail_and_return_answer, create_like_or_unlike, search_and_return_answer
+    create_and_send_mail_and_return_answer, create_like_or_unlike, search_and_return_answer, \
+    get_statistics_and_return_answer
 from facebookk.models import Page, Post, Like, UnLike
 from facebookk.serializers import PageSerializer, TagSerializer, PostSerializer, SearchSerializers, \
     PageAddImageSerializer, StatisticSerializer, LikeSerializer, UnLikeSerializer
@@ -59,6 +62,7 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
         "get_block_pages": PageSerializer,
         "get_all_pages_tags": TagSerializer,
         "get_statistics": StatisticSerializer,
+        "partial_update": PageSerializer,
 
     }
 
@@ -110,16 +114,13 @@ class PagesViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
 
     @action(detail=True, methods=['get'])
     def get_statistics(self, request, pk):
-        res = json.loads(requests.get(f'http://127.0.0.1:8000/{pk}').content)
-        res = self.get_serializer(res)
-        return Response(res.data, status=status.HTTP_200_OK)
+        return get_statistics_and_return_answer(pk)
 
 class PostsViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateModelMixin,
                    mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
 
     queryset = Post.objects.filter(page__is_block=False)
     serializer_class = PostSerializer
-
 
     permission_classes_by_action = {
         "list": [IsAuthenticated],
@@ -216,7 +217,6 @@ class UnLikeViewSet(viewsets.GenericViewSet, mixins.DestroyModelMixin, mixins.Re
                 permission()
                 for permission in self.permission_classes_by_action["default"]
             ]
-
 
 class SearchViewSet(viewsets.GenericViewSet):
     serializer_class = SearchSerializers

@@ -1,4 +1,6 @@
 .env
 .idea
-/data/
 Pipfile.lock
+data
+.pytest_cache
+kafka

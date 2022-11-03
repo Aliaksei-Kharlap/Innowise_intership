@@ -1,5 +1,10 @@
+from enum import Enum
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
+class Administrators(Enum):
+    admin = "admin"
+    moderator = "moderator"
+    administrators = ["admin", "moderator"]
 
 class OwnerOnlyUser(BasePermission):
 
@@ -40,10 +45,10 @@ class OwnerOnlyLikeUnlike(BasePermission):
 class AdminModerOnly(BasePermission):
 
     def has_permission(self, request, view):
-        return request.user.role == "admin" or request.user.role == "moderator"
+        return request.user.role in Administrators.administrators.value
 
     def has_object_permission(self, request, view, obj):
-        return request.user.role == "admin" or request.user.role == "moderator"
+        return request.user.role in Administrators.administrators.value
 
 
 
@@ -51,9 +56,15 @@ class AdminModerOnly(BasePermission):
 class AdminModerOwnerOnly(BasePermission):
 
     def has_permission(self, request, view):
-
-        return request.user.role == "admin" or request.user.role == "moderator"
-
+        return request.user.role in Administrators.administrators.value
 
     def has_object_permission(self, request, view, obj):
-        return request.user.role == "admin" or request.user.role == "moderator" or obj == request.user
+        return request.user.role in Administrators.administrators.value or obj == request.user
+
+class AdminOnly(BasePermission):
+
+    def has_permission(self, request, view):
+        return request.user.role in Administrators.admin.value
+
+    def has_object_permission(self, request, view, obj):
+        return request.user.role in Administrators.admin.value
