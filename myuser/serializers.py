@@ -1,13 +1,12 @@
 from rest_framework import serializers
 
 from myuser.models import User
-from django.contrib.auth import authenticate
 
 class UserSerializer(serializers.ModelSerializer):
     is_blocked = serializers.BooleanField(default=False, read_only=True)
     class Meta:
         model = User
-        fields = ('id', 'email', 'username', 'image_s3_path', 'role', 'title', "is_blocked")
+        fields = ('id', 'email', 'password', 'username', 'image_s3_path', 'role', 'title', 'is_blocked',)
 
 class UserBlockOrUnblockSerializer(serializers.Serializer):
     id = serializers.IntegerField()

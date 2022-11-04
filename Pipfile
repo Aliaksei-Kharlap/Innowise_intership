@@ -24,7 +24,6 @@ requests = "*"
 sqlalchemy = "*"
 aiokafka = "*"
 kafka-python = "*"
-
 [dev-packages]
 
 [requires]
