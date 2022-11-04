@@ -1,7 +1,6 @@
-from django.contrib.auth.models import AbstractUser
+
 from django.db import models
 
-from myuser.models import User
 
 
 class Tag(models.Model):
@@ -37,7 +36,7 @@ class Post(models.Model):
 class Like(models.Model):
    user_from = models.ForeignKey('myuser.User', related_name="like_to", on_delete=models.CASCADE)
    post_to = models.ForeignKey('facebookk.Post', related_name="lposts_to", on_delete=models.CASCADE,
-                               related_query_name='like_fil')
+                              related_query_name='like_fil')
 
 class UnLike(models.Model):
    user_from = models.ForeignKey('myuser.User', related_name="unlike_to", on_delete=models.CASCADE)

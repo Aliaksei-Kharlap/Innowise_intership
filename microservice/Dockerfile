@@ -6,13 +6,8 @@ RUN pip install pipenv
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /code
-
-COPY Pipfile Pipfile.lock ./
-
+WORKDIR /code2
+COPY Pipfile ./
 RUN pipenv install --deploy --ignore-pipfile
-
-
 COPY . ./
-
 ENTRYPOINT ["./docker_scripts.sh"]

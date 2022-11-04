@@ -8,7 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'email', 'password', 'username', 'image_s3_path', 'role', 'title', 'is_blocked',)
 
-class UserBlockSerializer(serializers.Serializer):
+class UserBlockOrUnblockSerializer(serializers.Serializer):
     id = serializers.IntegerField()
 
 

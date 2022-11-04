@@ -64,5 +64,3 @@ class AccountTests(APITestCase):
         response = self.client.post(url, "file")
 
         self.assertEqual(response, "Success")
-
-

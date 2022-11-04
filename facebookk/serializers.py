@@ -34,8 +34,14 @@ class UnLikeSerializer(serializers.ModelSerializer):
         fields = ('id', 'user_from', 'post_to')
 
 
+
 class SearchSerializers(serializers.Serializer):
     search = serializers.CharField(max_length=80)
 
 class PageAddImageSerializer(serializers.Serializer):
     image = serializers.FileField()
+
+class StatisticSerializer(serializers.Serializer):
+    posts_count = serializers.IntegerField()
+    followers_count = serializers.IntegerField()
+    likes_count = serializers.IntegerField()
