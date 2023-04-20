@@ -23,6 +23,6 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autoflush=False, bind=engine)
 Session = SessionLocal()
 Base = declarative_base()
-metadata = MetaData(bind=engine)
+metadata = MetaData()
 
 

@@ -1,3 +1,4 @@
+import logging
 
 from rest_framework import viewsets, status
 from rest_framework import mixins
@@ -6,9 +7,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from business_logic import permissions
-from business_logic.myuser_services import upload_file_to_s3_and_return_answer, block_unblock_user_and_return_answer
+from myuser.myuser_services import upload_file_to_s3_and_return_answer, block_unblock_user_and_return_answer
 from myuser.models import User
 from myuser.serializers import UserSerializer, LoginSerializer, UserBlockOrUnblockSerializer, UserAddImageSerializer
+
+
 
 
 class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateModelMixin,

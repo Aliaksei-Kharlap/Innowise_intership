@@ -1,9 +1,5 @@
-import json
-import time
-from datetime import datetime, timedelta
-
+import logging
 from django.shortcuts import get_object_or_404
-from kafka import KafkaConsumer, KafkaProducer
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,7 +7,7 @@ from django.db.models import Q
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from business_logic import permissions
-from business_logic.facebookk_services import add_page_image_and_return_answer, create_tag_and_return_answer, \
+from facebookk.facebookk_services import add_page_image_and_return_answer, create_tag_and_return_answer, \
     delete_tag_and_return_answer, modify_follows_requests_and_return_answer, add_or_del_follower_and_return_answer, \
     create_and_send_mail_and_return_answer, create_like_or_unlike, search_and_return_answer, \
     get_statistics_and_return_answer

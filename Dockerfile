@@ -1,7 +1,7 @@
 FROM python:3.10
 
-RUN pip install --upgrade pip
-RUN pip install pipenv
+RUN pip install --upgrade pip && pip install pipenv
+#RUN pip install pipenv
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1

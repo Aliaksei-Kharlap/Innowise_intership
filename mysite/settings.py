@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 import os
 
+from mysite.logs_formatter import CustomJsonFormatter
 
 load_dotenv()
 env_path = Path('.')/'.env'
@@ -175,3 +176,42 @@ AWS_SES_REGION_NAME = os.getenv("AWS_SES_REGION_NAME")
 KAFKA_SERVICE = os.getenv("KAFKA_SERVICE")
 KAFKA_TOPIC_RES = os.getenv("KAFKA_TOPIC_RES")
 KAFKA_TOPIC_REQ = os.getenv("KAFKA_TOPIC_REQ")
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'console': {
+            'format': '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
+        },
+        # 'file': {
+        #     'format': '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
+        # },
+        'json_formatter': {
+            '()': CustomJsonFormatter,
+        }
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'json_formatter'
+        },
+        # 'file': {
+        #     'level': 'INFO',
+        #     'class': 'logging.FileHandler',
+        #     'formatter': 'file',
+        #     'filename': 'debug.log'
+        # }
+    },
+    'loggers': {
+        '': {
+            'level': 'INFO',
+            'handlers': ['console'],
+            'propagate': True
+        },
+        'django.request': {
+            'level': 'INFO',
+            'handlers': ['console']    # add "file"
+        }
+    }
+}

@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 import boto3
 from django.shortcuts import get_object_or_404
@@ -8,6 +9,8 @@ from mysite import settings
 from myuser.models import User
 
 
+logger = logging.getLogger(__name__)
+
 def upload_file_to_s3_and_return_answer(request):
     file = request.FILES['image']
     user = request.user
@@ -15,6 +18,8 @@ def upload_file_to_s3_and_return_answer(request):
     FILE_FORMAT = ('image/jpeg', 'image/png',)
 
     if file.content_type in FILE_FORMAT:
+        logger.info("Trying to upload file")
+
         try:
             client_s3 = boto3.client(
                 's3',
@@ -31,9 +36,15 @@ def upload_file_to_s3_and_return_answer(request):
 
             user.image_s3_path = url
             user.save(update_fields=['image_s3_path'])
+
+            logger.info("File uploaded successfully", extra={"file_url": url})
             return Response("Success")
+
         except Exception as err:
+            logger.exception(err)       #logging.error(err, exc_info=True)
             return Response(f"{err}")
+
+    logger.info("Attempt to upload wrong file's format", extra={"user_id": user.id})
     return Response("This format is not allowed")
 
 

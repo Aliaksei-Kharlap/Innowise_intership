@@ -24,6 +24,8 @@ requests = "*"
 sqlalchemy = "*"
 aiokafka = "*"
 kafka-python = "*"
+python-json-logger = "*"
+
 [dev-packages]
 
 [requires]

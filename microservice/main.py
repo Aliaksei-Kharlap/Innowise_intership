@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 
 from fastapi import FastAPI
 
@@ -7,6 +8,8 @@ from database import Session, KAFKA_INSTANCE
 from models import User, Post, Like, UserPage
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
+
+logger = logging.getLogger(__name__)
 
 loop = asyncio.get_event_loop()
 aioproducer = AIOKafkaProducer(loop=loop, bootstrap_servers=KAFKA_INSTANCE)
@@ -21,14 +24,16 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    await consumer.stop()
+    await aioproducer.stop()
 
 async def consume():
     await asyncio.sleep(15)
     consumer = AIOKafkaConsumer("req", bootstrap_servers=KAFKA_INSTANCE, loop=loop)
+    logger.info("Created consumer")
     await consumer.start()
     try:
         async for msg in consumer:
+            logger.info("Reading message")
             value = msg.value.decode("utf-8")
             id = int(value[8])
             posts_count = Session.query(Post).filter(Post.page_id == id).count()
@@ -45,8 +50,11 @@ async def consume():
 
             await aioproducer.start()
             await aioproducer.send("res", json.dumps(answer).encode("utf-8"))
+            logger.info("Message processed")
+    except Exception as err:
+        logger.exception(err)
     finally:
-        await aioproducer.stop()
+        await consumer.stop()
         print("Success")
 
 

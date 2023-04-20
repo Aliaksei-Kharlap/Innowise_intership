@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime, timedelta
 
 import boto3
@@ -17,6 +18,8 @@ from mysite.settings import KAFKA_SERVICE, KAFKA_TOPIC_REQ, KAFKA_TOPIC_RES
 from myuser.models import User
 from myuser.serializers import UserSerializer, UserBlockOrUnblockSerializer
 
+logger = logging.getLogger(__name__)
+
 
 def add_page_image_and_return_answer(request, pk):
     file = request.FILES['image']
@@ -31,6 +34,7 @@ def add_page_image_and_return_answer(request, pk):
 
     if file.content_type in FILE_FORMAT:
         try:
+            logger.info("Trying to upload file")
             client_s3 = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
@@ -45,10 +49,13 @@ def add_page_image_and_return_answer(request, pk):
             url = f's3://{settings.AWS_STORAGE_BUCKET_NAME}/{file_name}'
             page.image = url
             page.save(update_fields=['image'])
+            logger.info("File uploaded successfully", extra={"file_url": url})
             return Response("Success")
         except Exception as err:
+            logger.exception(err)
             return Response(f"{err}")
     else:
+        logger.info("Attempt to upload wrong file's format", extra={"user_id": user.id})
         return Response("This format is not allowed")
 
 
@@ -60,10 +67,12 @@ def create_tag_and_return_answer(request, pk, serializer):
             obj = serializer.save()
             page.tags.add(obj)
             page.save(update_fields=['tags'])
+            logger.info("Created tag successfully")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response("Do not have acсess")
     return Response("Something wrong")
+
 
 def delete_tag_and_return_answer(serializer, pk):
     if serializer.is_valid():
@@ -72,6 +81,7 @@ def delete_tag_and_return_answer(serializer, pk):
         page = get_object_or_404(Page, pk=pk, is_block=False)
         page.tags.remove(tag)
         page.save(update_fields=['tags'])
+        logger.info("Delated tag successfully")
         return Response(status=status.HTTP_204_NO_CONTENT)
     return Response("Something wrong")
 
@@ -83,6 +93,7 @@ def modify_follows_requests_and_return_answer(request, pk):
         if page in pages:
             subs = get_object_or_404(Page, pk=pk, is_block=False).follow_requests.all()
             serializer = UserSerializer(subs, many=True)
+            logger.info("Modified follow's requests successfully")
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response("You do not have access")
@@ -95,6 +106,7 @@ def modify_follows_requests_and_return_answer(request, pk):
             page.followers.add(subs)
             page.follow_requests.clear()
             page.save(update_fields=['followers', 'follow_requests'])
+            logger.info("Modified follow's requests successfully")
             return Response(status=status.HTTP_200_OK)
         else:
             return Response("You do not have access")
@@ -105,6 +117,7 @@ def modify_follows_requests_and_return_answer(request, pk):
         if page in pages:
             page.follow_requests.clear()
             page.save(update_fields=['follow_requests'])
+            logger.info("Deleted follow's requests successfully")
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response("You do not have access")
@@ -124,6 +137,7 @@ def add_or_del_follower_and_return_answer(request, pk, mod):
                 if mod:
                     page.followers.add(user)
                 page.save(update_fields=['followers', 'follow_requests'])
+                logger.info("Modified follow's requests successfully")
                 return Response(status=status.HTTP_200_OK)
         return Response("You are wrong")
     return Response("Do not have access")
@@ -132,6 +146,7 @@ def create_and_send_mail_and_return_answer(serializer):
     if serializer.is_valid():
         serializer.save()
         send.delay(serializer.validated_data["page"].id)
+        logger.info("Created task to send mail successfully")
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response("Something wrong")
 
@@ -148,6 +163,7 @@ def create_like_or_unlike(request, serializer, pk, mod):
             return Response("You already created this for this post")
         else:
             serializer.save(post_to=post, user_from=user)
+            logger.info("Created like/unlike successfully")
             return Response(status=status.HTTP_201_CREATED)
     return Response("Something wrong, try again")
 
@@ -163,6 +179,7 @@ def search_and_return_answer(value):
             order_by('-rank')
         users = UserSerializer(users, many=True)
         pages = PageSerializer(pages, many=True)
+        logger.info("Found users and pages successfully")
         return Response({
             'users': users.data,
             'pages': pages.data
@@ -176,7 +193,9 @@ def get_statistics_and_return_answer(pk):
         value_serializer=lambda x: json.dumps(x).encode("utf-8"),
         api_version=(2, 0, 2)
     )
+    logger.info("Created producer successfully")
     producer.send(KAFKA_TOPIC_REQ, value={'id': pk})
+    logger.info("Send message in queue successfully")
     producer.close()
 
     consumer = KafkaConsumer(
@@ -187,14 +206,17 @@ def get_statistics_and_return_answer(pk):
         value_deserializer=lambda x: json.loads(x.decode("utf-8")),
         api_version=(2, 0, 2)
     )
+    logger.info("Created consumer successfully")
 
     time_status_first = datetime.now()
     time_limit = timedelta(seconds=5)
     while True:
         for mess in consumer:
+            logger.info("Reading messages in queue")
             if mess.value['id'] == int(pk):
                 res = mess.value
                 consumer.close()
+                logger.info("Send answer with statistics")
                 return Response(res, status=status.HTTP_200_OK)
         time_status_second = datetime.now()
         if time_status_second - time_status_first > time_limit:
