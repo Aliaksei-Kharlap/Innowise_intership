@@ -165,6 +165,49 @@ services:
       - ./kafka/data/zookeeper_data:/var/lib/zookeeper/data
       - ./kafka/data/zookeeper_log:/var/lib/zookeeper/log
 
+
+#  celery_worker:
+#    container_name: celery_worker
+#    build: .
+#    command: pipenv run celery -A celery_worker.mysite.celery_worker worker -l info
+#    volumes:
+#      - ./celery_date:/data
+#    environment:
+#      - CELERY_BROKER_URL=$CELERY_BROKER_URL
+#    depends_on:
+#      - web
+
+#  flower:
+#      container_name: flower
+#      build: .
+#      command: pipenv run celery -A celery_worker.celery flower --port=5555
+#      environment:
+#        - CELERY_BROKER_URL=$CELERY_BROKER_URL
+#      ports:
+#        - "5555:5555"
+#      volumes:
+#        - ./flower_data:/data
+#      depends_on:
+#        - web
+#        - celery_worker
+
+  flower:
+    container_name: flower
+    build: ./flower
+    environment:
+      - CELERY_BROKER_URL=$CELERY_BROKER_URL
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./flower_data:/data
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://localhost:5000"
+    depends_on:
+      - web
+      - kibana
+
 networks:
   elk:
     driver: bridge

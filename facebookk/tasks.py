@@ -3,7 +3,7 @@ from django.core.mail import send_mail
 from facebookk.models import Page
 from mysite import settings
 from myuser.models import User
-from mysite.celery import app
+from mysite.celery_worker import app
 
 
 @app.task

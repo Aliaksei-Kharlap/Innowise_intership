@@ -1,2 +1,2 @@
-from database import Base, engine
-from models import Country, Human
+from microservice.database import Base, engine
+# from microservice.models import Country, Human

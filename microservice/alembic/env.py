@@ -13,7 +13,7 @@ import sys
 #
 # sys.path.append(os.path.join(sys.path[0], '../../microservice'))
 
-from data_alembic.database_alembic import Base, engine
+from microservice.data_alembic.database_alembic import Base, engine
 
 load_dotenv()
 env_path = Path('..')/'.env'

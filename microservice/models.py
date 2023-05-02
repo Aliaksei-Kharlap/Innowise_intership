@@ -11,7 +11,7 @@ association_table = Table(
 )
 
 class UserPage(Base):
-    __tablename__ = Table("facebookk_page_followers", metadata, autoload_replace=True, autoload_with=engine)
+    __tablename__ = Table("facebookk_page_followers", metadata, autoloa=True, autoload_with=engine)
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("myuser_user.id"))
     page_id = Column(Integer, ForeignKey("facebookk_page.id"))
@@ -36,21 +36,21 @@ class Post(Base):
     page_id = Column(Integer)
 
 class Like(Base):
-    __tablename__ = Table("facebookk_like", metadata, autoload_replace=True, autoload_with=engine, schema=metadata.schema)
+    __tablename__ = Table("facebookk_like", metadata, autoload_replace=True, autoload_with=engine)
     id = Column(Integer, primary_key=True)
     post_to_id = Column(Integer)
     user_from_id = Column(Integer)
 
-class Country(Base):
-    __tablename__ = "country"
-    id = Column(Integer, primary_key=True)
-    country_name = Column(String(50), unique=True, nullable=False)
-    people = relationship("Human", back_populates="country")
-class Human(Base):
-    __tablename__ = "human"
-    id = Column(Integer, primary_key=True)
-    human_name = Column(String(50), unique=True, nullable=False)
-    birth_year = Column(Integer, nullable=False)
-    country_id = Column(Integer, ForeignKey("country.id"))
-    country = relationship("Country", back_populates="people")
+# class Country(Base):
+#     __tablename__ = "country"
+#     id = Column(Integer, primary_key=True)
+#     country_name = Column(String(50), unique=True, nullable=False)
+#     people = relationship("Human", back_populates="country")
+# class Human(Base):
+#     __tablename__ = "human"
+#     id = Column(Integer, primary_key=True)
+#     human_name = Column(String(50), unique=True, nullable=False)
+#     birth_year = Column(Integer, nullable=False)
+#     country_id = Column(Integer, ForeignKey("country.id"))
+#     country = relationship("Country", back_populates="people")
 

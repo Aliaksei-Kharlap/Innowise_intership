@@ -26,6 +26,8 @@ aiokafka = "*"
 kafka-python = "*"
 python-json-logger = "*"
 alembic = "*"
+botocore = "*"
+flower = "*"
 
 [dev-packages]
 

@@ -5,7 +5,7 @@ import logging
 from fastapi import FastAPI
 
 from database import Session, KAFKA_INSTANCE
-from models import User, Post, Like, UserPage, Country
+from models import User, Post, Like, UserPage
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
 
