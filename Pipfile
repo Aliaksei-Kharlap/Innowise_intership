@@ -25,6 +25,7 @@ sqlalchemy = "*"
 aiokafka = "*"
 kafka-python = "*"
 python-json-logger = "*"
+alembic = "*"
 
 [dev-packages]
 

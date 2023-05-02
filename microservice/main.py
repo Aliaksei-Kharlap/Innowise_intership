@@ -5,7 +5,7 @@ import logging
 from fastapi import FastAPI
 
 from database import Session, KAFKA_INSTANCE
-from models import User, Post, Like, UserPage
+from models import User, Post, Like, UserPage, Country
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
 
@@ -36,6 +36,16 @@ async def consume():
             logger.info("Reading message")
             value = msg.value.decode("utf-8")
             id = int(value[8])
+
+            # country = Session.query(Country).filter(Country.id == 1).first()
+            # if not country:
+            #     my_contry = Country(country_name="Japan")
+            #     Session.add(my_contry)
+            #     Session.commit()
+            #     logger.info("Created Country successfully")
+            #     Session.refresh()
+            #     country = Session.query(Country).filter(Country.id == 1).first()
+            logger.info("Created Country successfully and go next")
             posts_count = Session.query(Post).filter(Post.page_id == id).count()
             followers_count = Session.query(User).join(UserPage, User.id == UserPage.user_id).filter(
                 UserPage.page_id == id).count()
@@ -46,6 +56,7 @@ async def consume():
                 "posts_count": posts_count,
                 "followers_count": followers_count,
                 "likes_count": likes_count,
+                "country": 1,
             }
 
             await aioproducer.start()

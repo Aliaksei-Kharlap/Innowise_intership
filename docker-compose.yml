@@ -131,6 +131,7 @@ services:
         syslog-address: "tcp://localhost:5000"
     depends_on:
       - elasticsearch
+      - db
 
   kafka:
     image: confluentinc/cp-kafka:latest

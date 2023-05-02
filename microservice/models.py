@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Table
 from database import Base, metadata, engine
 
@@ -30,11 +31,26 @@ class Page(Base):
     #                          )
 
 class Post(Base):
-    __tablename__ = Table("facebookk_post", metadata, autoload_replace=True)
+    __tablename__ = Table("facebookk_post", metadata, autoload_replace=True, autoload_with=engine)
     id = Column(Integer, primary_key=True)
     page_id = Column(Integer)
 
 class Like(Base):
-    __tablename__ = Table("facebookk_like", metadata, autoload_replace=True)
+    __tablename__ = Table("facebookk_like", metadata, autoload_replace=True, autoload_with=engine, schema=metadata.schema)
     id = Column(Integer, primary_key=True)
     post_to_id = Column(Integer)
+    user_from_id = Column(Integer)
+
+class Country(Base):
+    __tablename__ = "country"
+    id = Column(Integer, primary_key=True)
+    country_name = Column(String(50), unique=True, nullable=False)
+    people = relationship("Human", back_populates="country")
+class Human(Base):
+    __tablename__ = "human"
+    id = Column(Integer, primary_key=True)
+    human_name = Column(String(50), unique=True, nullable=False)
+    birth_year = Column(Integer, nullable=False)
+    country_id = Column(Integer, ForeignKey("country.id"))
+    country = relationship("Country", back_populates="people")
+
