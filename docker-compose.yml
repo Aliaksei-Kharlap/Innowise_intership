@@ -4,16 +4,222 @@ services:
   db:
     image: postgres
     volumes:
-      - ./data/db:/var/lib/postgresql/data
+      - ./data/db:/var/lib/postgresql/data:rw
     environment:
       - POSTGRES_DB=djangoproject
       - POSTGRES_USER=djangouser
       - POSTGRES_PASSWORD=password
     ports:
       - "5432:5432"
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://localhost:5000"
+    depends_on:
+      - elasticsearch
+
   web:
     build: .
     ports:
       - "8000:8000"
     depends_on:
       - db
+      - zookeeper
+      - kafka
+    links:
+      - kafka
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://localhost:5000"
+
+  microservice:
+    build: ./microservice
+    ports:
+      - "8001:8001"
+    depends_on:
+      - web
+      - zookeeper
+      - kafka
+    links:
+      - kafka
+      - web
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://localhost:5000"
+
+
+  elasticsearch:
+    build:
+      context: elasticsearch/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./elasticsearch/config/elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+        read_only: false
+      - type: volume
+        source: elasticsearch
+        target: /usr/share/elasticsearch/data/:Z
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ELASTIC_USER: $ELASTIC_USER
+      ELASTIC_PASSWORD: $ELASTIC_PASSWORD
+    networks:
+      - elk
+
+
+  logstash:
+    build:
+      context: logstash/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./logstash/config/logstash.yml
+        target: /usr/share/logstash/config/logstash.yml
+        read_only: false
+      - type: bind
+        source: ./logstash/pipeline
+        target: /usr/share/logstash/pipeline
+        read_only: false
+    ports:
+      - "5000:5000"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    build:
+      context: kibana/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./kibana/config/kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+        read_only: True
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://localhost:5000"
+    depends_on:
+      - elasticsearch
+      - db
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+#    ports:
+#      - "9092:9092"
+    container_name: kafka
+    user: root
+    hostname: kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_CREATE_TOPICS: "res:1:1, req:1:1"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      #KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENERS: PLAINTEXT://:9092 #PLAINTEXT://0.0.0.0:29092,
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092 #PLAINTEXT_HOST://kafka:9092
+      #KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://localhost:5000"
+    #restart: always
+    volumes:
+      - ./kafka/data/zookeeper_data:/var/lib/zookeeper/data
+      - ./kafka/data/zookeeper_log:/var/lib/zookeeper/log
+
+
+#  celery_worker:
+#    container_name: celery_worker
+#    build: .
+#    command: pipenv run celery -A celery_worker.mysite.celery_worker worker -l info
+#    volumes:
+#      - ./celery_date:/data
+#    environment:
+#      - CELERY_BROKER_URL=$CELERY_BROKER_URL
+#    depends_on:
+#      - web
+
+#  flower:
+#      container_name: flower
+#      build: .
+#      command: pipenv run celery -A celery_worker.celery flower --port=5555
+#      environment:
+#        - CELERY_BROKER_URL=$CELERY_BROKER_URL
+#      ports:
+#        - "5555:5555"
+#      volumes:
+#        - ./flower_data:/data
+#      depends_on:
+#        - web
+#        - celery_worker
+
+  flower:
+    container_name: flower
+    build: ./flower
+    environment:
+      - CELERY_BROKER_URL=$CELERY_BROKER_URL
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./flower_data:/data
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://localhost:5000"
+    depends_on:
+      - web
+      - kibana
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+
+networks:
+  elk:
+    driver: bridge
+
+volumes:
+  elasticsearch:
