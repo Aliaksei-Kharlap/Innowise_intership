@@ -12,5 +12,6 @@ pipenv run python3 manage.py migrate
 #
 #fi
 
-pipenv run python3 manage.py runserver 0:8000
+#pipenv run python3 manage.py runserver 0:8000
+pipenv run gunicorn --bind 0.0.0.0:8000 mysite.wsgi
 pipenv run celery -A mysite worker -l info

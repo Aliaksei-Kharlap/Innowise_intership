@@ -28,6 +28,7 @@ python-json-logger = "*"
 alembic = "*"
 botocore = "*"
 flower = "*"
+gunicorn = "*"
 
 [dev-packages]
 
