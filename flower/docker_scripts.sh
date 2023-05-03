@@ -1,3 +1,3 @@
 #!/bin/bash
 
-pipenv run celery flower --broker=$CELERY_BROKER_URL --port=5555
+pipenv run celery --broker=$CELERY_BROKER_URL flower --port=5555

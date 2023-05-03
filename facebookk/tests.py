@@ -1,5 +1,6 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch, MagicMock
 
+from facebookk import facebookk_services
 from mysite import settings
 
 
@@ -72,45 +73,66 @@ class FacebookkTests(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.data["name"], "Secoddnd page2")
 
-
-    def test_microservices(self):
+    @patch.object(facebookk_services, "KafkaProducer")
+    @patch.object(facebookk_services, "KafkaConsumer")
+    def test_microservices(self, consumer, producer):
         """
         Ensure we can upload image.
         """
+        prod = MagicMock()
+        prod.send.return_value = True
+        prod.close.return_value = True
+        producer.return_value = prod
+        cons = MagicMock()
+        mess = MagicMock()
+        mess.value = {'id': 1}
+        cons.close.return_value = True
+        cons.__iter__.return_value = [mess]
+        consumer.return_value = cons
         url = "/pages/1/get_statistics/"
-        mock = Mock()
-        mock.return_value = {
-            "posts_count": 1,
-            "followers_count" :2,
-            "likes_count": 100,
-            }
-
-        self.client.get = mock
+        self.client.login(email="test1@gmail.com", password="admin", username="testuser1")
         response = self.client.get(url)
+        self.assertEqual(response.data['id'], 1)
 
-        self.assertEqual(response["posts_count"], 1)
 
-@pytest.fixture
-def page_example(self):
-    page = {
-            "name": "Secoddnd page2",
-            "uuid": "dsfsdfsssdddds222sss",
-            "description": "sdssssss2sssssssssssssssssssssss",
 
-            "owner": 1,
+    # @patch.object(myuser_services, "boto3")
+    # def test_image_upload(self, boto3_mock):
+    #     """
+    #     Ensure we can upload image.
+    #     """
+    #     self.client.login(email="test1@gmail.com", password="admin", username="testuser1")
+    #     mock = MagicMock()
+    #     mock.upload_fileobj.return_value = True
+    #     boto3_mock.client.return_value = mock
+    #     mock_file = MagicMock()
+    #     mock_file.content_type = 'image/jpeg'
+    #     url = "/user/users/add_image/"
+    #     response = self.client.post(url, data={'image': mock_file})
+    #
+    #     self.assertEqual(response.status_code, 200)
 
-            "image": None,
-            "is_private": False,
-
-            "unblock_date": None
-            }
-
-    return page
-
-def test_create_page(page_example):
-    Page.objects.create(**page_example)
-    val = Page.objects.get(uuid="dsfsdfsssdddds222sss").name
-    assert val == "Secoddnd page2"
+# @pytest.fixture
+# def page_example(self):
+#     page = {
+#             "name": "Secoddnd page2",
+#             "uuid": "dsfsdfsssdddds222sss",
+#             "description": "sdssssss2sssssssssssssssssssssss",
+#
+#             "owner": 1,
+#
+#             "image": None,
+#             "is_private": False,
+#
+#             "unblock_date": None
+#             }
+#
+#     return page
+#
+# def test_create_page(page_example):
+#     Page.objects.create(**page_example)
+#     val = Page.objects.get(uuid="dsfsdfsssdddds222sss").name
+#     assert val == "Secoddnd page2"
 
 
 

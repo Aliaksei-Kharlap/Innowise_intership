@@ -26,7 +26,6 @@ def upload_file_to_s3_and_return_answer(request):
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             )
-
             client_s3.upload_fileobj(
                 file,
                 settings.AWS_STORAGE_BUCKET_NAME,

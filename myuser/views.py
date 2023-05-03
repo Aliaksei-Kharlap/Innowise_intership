@@ -26,6 +26,7 @@ class UsersViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Create
         "retrieve": [AllowAny],
         "update": [permissions.OwnerOnlyUser],
         "delete": [permissions.AdminModerOwnerOnly],
+        "add_image": [AllowAny]
     }
 
     serializer_classes_by_action = {
